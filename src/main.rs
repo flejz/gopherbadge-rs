@@ -1,17 +1,18 @@
 #![no_std]
 #![no_main]
 
+mod draw;
+mod movable_sprite;
+mod sample;
+
 use defmt::*;
 use defmt_rtt as _;
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::Rgb565,
-    prelude::{DrawTarget, Point, Primitive, RgbColor, Size},
-    primitives::{Circle, PrimitiveStyle, Rectangle},
-    text::Text,
+    prelude::{DrawTarget, Point, RgbColor},
     Drawable,
 };
-use embedded_hal::{delay::DelayNs, digital::OutputPin};
+use embedded_hal::digital::{InputPin, OutputPin};
 use embedded_hal_bus::spi::{ExclusiveDevice, NoDelay};
 use embedded_hal_compat::ForwardCompat;
 use mipidsi::{
@@ -20,6 +21,7 @@ use mipidsi::{
     options::{ColorInversion, Orientation, Rotation},
     Builder,
 };
+use movable_sprite::MovableSprite;
 use panic_probe as _;
 
 use rp2040_hal::{
@@ -37,6 +39,7 @@ use hal::{
     watchdog::Watchdog,
 };
 
+use tinybmp::Bmp;
 use usb_device::{
     bus::UsbBusAllocator,
     device::{StringDescriptors, UsbDeviceBuilder, UsbVidPid},
@@ -50,8 +53,9 @@ use usbd_serial::{SerialPort, USB_CLASS_CDC};
 #[used]
 pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_GENERIC_03H;
 
-// External high-speed crystal on the Gopherbadge board is 12 MHz
 const XTAL_FREQ_HZ: u32 = 12_000_000u32;
+pub const TFT_DISPLAY_HEIGHT: u16 = 240;
+pub const TFT_DISPLAY_WIDTH: u16 = 320;
 
 #[entry]
 fn main() -> ! {
@@ -97,9 +101,9 @@ fn main() -> ! {
 
     let mut _usb_dev = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x16c0, 0x27dd))
         .strings(&[StringDescriptors::default()
-            .manufacturer("Fake company")
-            .product("Serial port")
-            .serial_number("TEST")])
+            .manufacturer("Evil Corp")
+            .product("go-desecrator")
+            .serial_number("N#-of-the-BEST")]) // not beast :)
         .unwrap()
         .device_class(USB_CLASS_CDC) // from: https://www.usb.org/defined-class-codes
         .build();
@@ -129,83 +133,57 @@ fn main() -> ! {
     let orientation = Orientation::new();
     let orientation = orientation.rotate(Rotation::Deg270);
     let mut display = Builder::new(ST7789, di)
-        .display_size(240, 320)
+        .display_size(TFT_DISPLAY_HEIGHT, TFT_DISPLAY_WIDTH)
         .invert_colors(ColorInversion::Inverted)
         .orientation(orientation)
         .init(&mut delay)
         .unwrap();
 
-    // draw
-    draw(&mut display);
-
-    // led
-    let mut backside_led_pin = pins.gpio2.into_push_pull_output();
-    let mut led_backlight_pin = pins.gpio12.into_push_pull_output();
-    led_backlight_pin.set_high().unwrap();
-
-    loop {
-        backside_led_pin.set_high().unwrap();
-        delay.delay_ms(500);
-        backside_led_pin.set_low().unwrap();
-        delay.delay_ms(2000);
-    }
-}
-
-fn draw<D>(display: &mut D)
-where
-    D: DrawTarget<Color = Rgb565>,
-    D::Error: core::fmt::Debug,
-{
+    // light up display backlight and clear display
+    pins.gpio12.into_push_pull_output().set_high().unwrap();
     display.clear(Rgb565::BLACK).unwrap();
 
-    Circle::new(Point::new(0, 0), 41)
-        .into_styled(PrimitiveStyle::with_fill(Rgb565::RED))
-        .draw(display)
-        .unwrap();
+    // led
+    let backside_led_pin = pins.gpio2.into_push_pull_output();
+    let a_button_pin = pins.gpio10.into_pull_down_input();
 
-    Rectangle::new(Point::new(20, 20), Size::new(80, 60))
-        .into_styled(PrimitiveStyle::with_fill(Rgb565::RED))
-        .draw(display)
-        .unwrap();
+    let mut moved = true;
+    let mut r_button_pin = pins.gpio22.into_pull_down_input();
+    let mut d_button_pin = pins.gpio23.into_pull_down_input();
+    let mut u_button_pin = pins.gpio24.into_pull_down_input();
+    let mut l_button_pin = pins.gpio25.into_pull_down_input();
 
-    let no_background = MonoTextStyleBuilder::new()
-        .font(&FONT_6X9)
-        .text_color(Rgb565::WHITE)
-        .build();
+    // draw
+    const RUST_LOGO: &'static [u8] = include_bytes!("./assets/rust-pride.bmp");
+    let mut rust_logo_position = Point::new(100, 100);
+    let mut rust_logo = MovableSprite::new(
+        Bmp::from_slice(RUST_LOGO).unwrap(),
+        rust_logo_position.clone(),
+    );
+    rust_logo.draw(&mut display);
 
-    let filled_background = MonoTextStyleBuilder::new()
-        .font(&FONT_6X9)
-        .text_color(Rgb565::YELLOW)
-        .background_color(Rgb565::BLUE)
-        .build();
+    loop {
+        if r_button_pin.is_low().unwrap() {
+            rust_logo_position.x += 1;
+            moved = true;
+        }
+        if l_button_pin.is_low().unwrap() {
+            rust_logo_position.x -= 1;
+            moved = true;
+        }
+        if u_button_pin.is_low().unwrap() {
+            rust_logo_position.y -= 1;
+            moved = true;
+        }
+        if d_button_pin.is_low().unwrap() {
+            rust_logo_position.y += 1;
+            moved = true;
+        }
 
-    let inverse_background = MonoTextStyleBuilder::new()
-        .font(&FONT_6X9)
-        .text_color(Rgb565::BLUE)
-        .background_color(Rgb565::YELLOW)
-        .build();
-
-    Text::new(
-        "Hello world! - no background",
-        Point::new(15, 15),
-        no_background,
-    )
-    .draw(display)
-    .unwrap();
-
-    Text::new(
-        "Hello world! - filled background",
-        Point::new(15, 30),
-        filled_background,
-    )
-    .draw(display)
-    .unwrap();
-
-    Text::new(
-        "Hello world! - inverse background",
-        Point::new(15, 45),
-        inverse_background,
-    )
-    .draw(display)
-    .unwrap();
+        if moved {
+            rust_logo.move_to(&mut display, &mut rust_logo_position, Rgb565::BLACK);
+            moved = false;
+        }
+        // delay.delay_ms(10);
+    }
 }
