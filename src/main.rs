@@ -1,16 +1,15 @@
 #![no_std]
 #![no_main]
 
-mod draw;
 mod movable_sprite;
-mod sample;
+// mod draw;
+// mod sample;
 
 use defmt::*;
 use defmt_rtt as _;
 use embedded_graphics::{
     pixelcolor::Rgb565,
     prelude::{DrawTarget, Point, RgbColor},
-    Drawable,
 };
 use embedded_hal::digital::{InputPin, OutputPin};
 use embedded_hal_bus::spi::{ExclusiveDevice, NoDelay};
@@ -21,7 +20,7 @@ use mipidsi::{
     options::{ColorInversion, Orientation, Rotation},
     Builder,
 };
-use movable_sprite::MovableSprite;
+use movable_sprite::MovableSpriteBuilder;
 use panic_probe as _;
 
 use rp2040_hal::{
@@ -144,46 +143,49 @@ fn main() -> ! {
     display.clear(Rgb565::BLACK).unwrap();
 
     // led
-    let backside_led_pin = pins.gpio2.into_push_pull_output();
-    let a_button_pin = pins.gpio10.into_pull_down_input();
+    let _backside_led_pin = pins.gpio2.into_push_pull_output();
+    let _a_button_pin = pins.gpio10.into_pull_down_input();
 
-    let mut moved = true;
+    let mut paint = true;
     let mut r_button_pin = pins.gpio22.into_pull_down_input();
     let mut d_button_pin = pins.gpio23.into_pull_down_input();
     let mut u_button_pin = pins.gpio24.into_pull_down_input();
     let mut l_button_pin = pins.gpio25.into_pull_down_input();
 
     // draw
-    const RUST_LOGO: &'static [u8] = include_bytes!("./assets/rust-pride.bmp");
+    // const RUST_LOGO: &'static [u8] = include_bytes!("./assets/rust-pride.bmp");
+    const RUST_LOGO: &[u8] = include_bytes!("./assets/crab_rgb565.bmp");
     let mut rust_logo_position = Point::new(100, 100);
-    let mut rust_logo = MovableSprite::new(
-        Bmp::from_slice(RUST_LOGO).unwrap(),
-        rust_logo_position.clone(),
-    );
+
+    let rust_logo: Bmp<Rgb565> = Bmp::from_slice(RUST_LOGO).unwrap();
+    let mut rust_logo = MovableSpriteBuilder::builder(rust_logo)
+        .with_position(rust_logo_position)
+        .with_screen_boundaries()
+        .build();
+
     rust_logo.draw(&mut display);
 
     loop {
         if r_button_pin.is_low().unwrap() {
             rust_logo_position.x += 1;
-            moved = true;
+            paint = true;
         }
         if l_button_pin.is_low().unwrap() {
             rust_logo_position.x -= 1;
-            moved = true;
+            paint = true;
         }
         if u_button_pin.is_low().unwrap() {
             rust_logo_position.y -= 1;
-            moved = true;
+            paint = true;
         }
         if d_button_pin.is_low().unwrap() {
             rust_logo_position.y += 1;
-            moved = true;
+            paint = true;
         }
 
-        if moved {
+        if paint {
             rust_logo.move_to(&mut display, &mut rust_logo_position, Rgb565::BLACK);
-            moved = false;
+            paint = false;
         }
-        // delay.delay_ms(10);
     }
 }
