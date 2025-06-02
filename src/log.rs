@@ -1,11 +1,11 @@
 use accelerometer::vector::F32x3;
 use core::{fmt::Write, write};
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+    Drawable,
+    mono_font::{MonoTextStyleBuilder, ascii::FONT_6X9},
     pixelcolor::{Rgb555, Rgb565, Rgb888},
     prelude::{DrawTarget, Point, RgbColor},
     text::Text,
-    Drawable,
 };
 use heapless::String;
 use smart_leds::RGB8;

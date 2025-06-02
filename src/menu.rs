@@ -1,20 +1,20 @@
 use cortex_m::delay::Delay;
 use embedded_graphics::{
-    mono_font::{ascii::FONT_9X15_BOLD, MonoTextStyleBuilder},
+    Drawable,
+    mono_font::{MonoTextStyleBuilder, ascii::FONT_9X15_BOLD},
     pixelcolor::{Rgb555, Rgb565, Rgb888},
     prelude::{DrawTarget, Point, RgbColor, WebColors},
     text::{Alignment, Baseline, Text, TextStyleBuilder},
-    Drawable,
 };
 use embedded_hal::{delay::DelayNs, digital::InputPin};
 use embedded_hal_compat::Forward;
 use rp2040_hal::gpio::{
-    bank0::{Gpio10, Gpio23, Gpio24},
     FunctionSio, Pin, PullDown, SioInput,
+    bank0::{Gpio10, Gpio23, Gpio24},
 };
 use tinybmp::Bmp;
 
-use crate::{bmp::BmpExt, sprite::SpriteBuilder, RUST_PRIDE};
+use crate::{RUST_PRIDE, bmp::BmpExt, sprite::SpriteBuilder};
 
 #[derive(PartialEq)]
 pub enum MenuOption {

@@ -1,11 +1,11 @@
 use cortex_m::delay::Delay;
 use embedded_graphics::{
+    Drawable,
     image::Image,
-    mono_font::{ascii::FONT_9X18_BOLD, MonoTextStyleBuilder},
+    mono_font::{MonoTextStyleBuilder, ascii::FONT_9X18_BOLD},
     pixelcolor::{Rgb555, Rgb565, Rgb888},
     prelude::{DrawTarget, Point, RgbColor, WebColors},
     text::{Alignment, Baseline, Text, TextStyleBuilder},
-    Drawable,
 };
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 use embedded_hal_compat::Forward;

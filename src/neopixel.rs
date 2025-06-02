@@ -1,24 +1,24 @@
 use cortex_m::delay::Delay;
 use embedded_graphics::{
+    Drawable,
     pixelcolor::{Rgb555, Rgb565, Rgb888},
     prelude::{DrawTarget, Point, Primitive, RgbColor, WebColors},
     primitives::{Circle, PrimitiveStyle},
-    Drawable,
 };
 use embedded_hal::{delay::DelayNs, digital::InputPin};
 use embedded_hal_compat::Forward;
 use rp2040_hal::{
     gpio::{
-        bank0::{Gpio11, Gpio15},
         FunctionPio0, FunctionSio, Pin, PullDown, SioInput,
+        bank0::{Gpio11, Gpio15},
     },
     pac::PIO0,
     pio::SM0,
     timer::CountDown,
 };
 use smart_leds::{
-    hsv::{hsv2rgb, Hsv},
-    SmartLedsWrite, RGB8,
+    RGB8, SmartLedsWrite,
+    hsv::{Hsv, hsv2rgb},
 };
 use ws2812_pio::Ws2812;
 

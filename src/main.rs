@@ -1,16 +1,16 @@
 #![no_std]
 #![no_main]
 
-mod accel;
+mod accel_dpad;
 mod bmp;
-mod dpad;
+mod gopherbadge_rs;
 mod log;
 mod menu;
 mod neopixel;
 mod splash;
 mod sprite;
 
-use accel::accel;
+use accel_dpad::accel_dpad;
 use defmt_rtt as _;
 use embedded_hal_bus::spi::{ExclusiveDevice, NoDelay};
 use embedded_hal_compat::ForwardCompat;
@@ -48,6 +48,8 @@ use usb_device::{
 use usbd_serial::{SerialPort, USB_CLASS_CDC};
 use ws2812_pio::Ws2812;
 
+use crate::gopherbadge_rs::gopherbadge_rs;
+
 // the linker will place this boot block at the start of our program image. we
 // need this to help the rom bootloader get our code up and running.
 // TODO: create a BSP for gopherbadge
@@ -60,6 +62,7 @@ pub const TFT_DISPLAY_HEIGHT: u16 = 240;
 pub const TFT_DISPLAY_WIDTH: u16 = 320;
 
 pub static GOPHER_PANIC: &[u8] = include_bytes!("./assets/gopher-panic.bmp");
+pub static GOPHERBADGE_RS: &[u8] = include_bytes!("./assets/gopherbadge-rs.bmp");
 pub static RUST_PRIDE: &[u8] = include_bytes!("./assets/rust-pride.bmp");
 pub static RUST_CRAB: &[u8] = include_bytes!("./assets/crab.bmp");
 
@@ -188,8 +191,8 @@ fn main() -> ! {
     let mut b_btn_pin = pins.gpio11.into_pull_down_input();
     let mut down_btn_pin = pins.gpio23.into_pull_down_input();
     let mut up_btn_pin = pins.gpio24.into_pull_down_input();
-    let left_btn_pin = pins.gpio25.into_pull_down_input();
-    let right_btn_pin = pins.gpio22.into_pull_down_input();
+    let mut left_btn_pin = pins.gpio25.into_pull_down_input();
+    let mut right_btn_pin = pins.gpio22.into_pull_down_input();
 
     splash_screen(
         &mut display,
@@ -210,8 +213,17 @@ fn main() -> ! {
                 // badge(&mut display, &mut delay);
             }
             MenuOption::AccelerometerDPad => {
-                // let accel_f32x3 = lis3dh.accel_norm().unwrap();
-                accel(&mut display, &mut lis3dh, &mut b_btn_pin);
+                accel_dpad(
+                    &mut display,
+                    &mut delay,
+                    &mut lis3dh,
+                    &mut a_btn_pin,
+                    &mut b_btn_pin,
+                    &mut down_btn_pin,
+                    &mut up_btn_pin,
+                    &mut left_btn_pin,
+                    &mut right_btn_pin,
+                );
             }
             MenuOption::Neopixel => {
                 neopixel(&mut display, &mut delay, &mut b_btn_pin, &mut ws);
@@ -220,7 +232,7 @@ fn main() -> ! {
                 // hunt_the_gopher(&mut display, &mut delay);
             }
             MenuOption::GopherbadgeRust => {
-                // gopherbadge_rust(&mut display, &mut delay);
+                gopherbadge_rs(&mut display, &mut delay, &mut b_btn_pin);
             }
         }
     }
