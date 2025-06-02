@@ -3,7 +3,9 @@
 
 mod accel_dpad;
 mod bmp;
+mod gopher_hunt;
 mod gopherbadge_rs;
+mod image_rotate;
 mod log;
 mod menu;
 mod neopixel;
@@ -48,7 +50,7 @@ use usb_device::{
 use usbd_serial::{SerialPort, USB_CLASS_CDC};
 use ws2812_pio::Ws2812;
 
-use crate::gopherbadge_rs::gopherbadge_rs;
+use crate::{gopher_hunt::gopher_hunt, gopherbadge_rs::gopherbadge_rs};
 
 // the linker will place this boot block at the start of our program image. we
 // need this to help the rom bootloader get our code up and running.
@@ -200,6 +202,8 @@ fn main() -> ! {
         display_backlight_pin,
         GOPHER_PANIC,
     );
+
+    gopher_hunt(&mut display, &mut lis3dh, &mut b_btn_pin);
 
     loop {
         match menu(

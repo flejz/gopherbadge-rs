@@ -10,6 +10,8 @@ use embedded_graphics::{
 use heapless::String;
 use smart_leds::RGB8;
 
+use crate::TFT_DISPLAY_HEIGHT;
+
 pub fn log<D, C>(display: &mut D, text: &str, x: i32, y: i32)
 where
     D: DrawTarget<Color = C>,
@@ -84,4 +86,15 @@ where
         led_color.r, led_color.g, led_color.b,
     );
     log(display, &buf, 10, 20);
+}
+
+pub fn log_angle<D, C>(display: &mut D, angle: f32)
+where
+    D: DrawTarget<Color = C>,
+    D::Error: core::fmt::Debug,
+    C: RgbColor + From<Rgb555> + From<Rgb565> + From<Rgb888>,
+{
+    let mut buf: String<32> = String::new();
+    let _ = write!(&mut buf, "angle: {:.2}", angle);
+    log(display, &buf, 10, TFT_DISPLAY_HEIGHT as i32 - 20);
 }

@@ -110,7 +110,7 @@ pub fn accel_dpad<D, C, L>(
         }
 
         if draw {
-            rust_logo.move_to(display, &mut rust_logo_position, C::BLACK);
+            rust_logo.move_to(display, &mut rust_logo_position, C::BLACK, 0.0);
             draw = false;
         }
 

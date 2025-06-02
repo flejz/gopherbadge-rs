@@ -6,7 +6,7 @@ use embedded_graphics::{
 };
 use tinybmp::Bmp;
 
-use crate::{TFT_DISPLAY_HEIGHT, TFT_DISPLAY_WIDTH};
+use crate::{TFT_DISPLAY_HEIGHT, TFT_DISPLAY_WIDTH, image_rotate::ImageRotate};
 
 pub struct SpriteBuilder<'a, C> {
     bmp: Bmp<'a, C>,
@@ -56,7 +56,7 @@ where
 
 pub struct Sprite<'a, C> {
     bmp: Bmp<'a, C>,
-    pos: Point,
+    pub pos: Point,
     size: Size,
     screen_boundaries: bool,
     transparent_color: Option<C>,
@@ -82,12 +82,17 @@ where
         }
     }
 
-    pub fn draw<D>(&self, display: &mut D)
+    pub fn draw<D>(&self, display: &mut D, angle: f32)
     where
         D: DrawTarget<Color = C>,
         D::Error: core::fmt::Debug,
     {
-        Image::new(&self.bmp, self.pos).draw(display).unwrap();
+        if angle == 0.0 {
+            Image::new(&self.bmp, self.pos).draw(display)
+        } else {
+            ImageRotate::new(&self.bmp, self.pos, angle).draw(display)
+        }
+        .unwrap();
     }
 
     pub fn draw_with_transparency<D>(&self, display: &mut D)
@@ -154,30 +159,26 @@ where
         }
     }
 
-    pub fn move_to<D>(&mut self, display: &mut D, new_pos: &mut Point, bg: C)
+    pub fn move_to<D>(&mut self, display: &mut D, new_pos: &mut Point, bg: C, angle: f32)
     where
         D: DrawTarget<Color = C>,
         D::Error: core::fmt::Debug,
     {
         if self.screen_boundaries {
-            // keep within screen bounds
-            if new_pos.x + self.size.width as i32 >= TFT_DISPLAY_WIDTH as i32 {
-                new_pos.x = TFT_DISPLAY_WIDTH as i32 - self.size.width as i32;
-            } else if new_pos.x < 0 {
-                new_pos.x = 0;
-            }
-            if new_pos.y + self.size.height as i32 >= TFT_DISPLAY_HEIGHT as i32 {
-                new_pos.y = TFT_DISPLAY_HEIGHT as i32 - self.size.height as i32;
-            } else if new_pos.y < 0 {
-                new_pos.y = 0;
-            }
+            new_pos.x = new_pos
+                .x
+                .clamp(0, TFT_DISPLAY_WIDTH as i32 - self.size.width as i32);
+
+            new_pos.y = new_pos
+                .y
+                .clamp(0, TFT_DISPLAY_HEIGHT as i32 - self.size.height as i32);
         }
 
         let old_pos = self.pos;
         self.clear_diff(display, old_pos, new_pos, bg);
         self.pos = *new_pos;
         if self.transparent_color.is_none() {
-            self.draw(display);
+            self.draw(display, angle);
         } else {
             self.draw_with_transparency(display);
         }

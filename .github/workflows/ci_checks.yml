@@ -18,12 +18,12 @@ jobs:
           # Nightly is only for reference and allowed to fail
           - rust: nightly
             experimental: true
-        os:
+        os: [ubuntu-latest]
           # Check compilation works on common OSes
           # (i.e. no path issues)
-          - ubuntu-latest
           # - macOS-latest
           # - windows-latest
+          # - ubuntu-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
