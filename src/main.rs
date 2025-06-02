@@ -15,26 +15,25 @@ use defmt_rtt as _;
 use embedded_hal_bus::spi::{ExclusiveDevice, NoDelay};
 use embedded_hal_compat::ForwardCompat;
 use lis3dh::{DataRate, Lis3dh, Range, SlaveAddr};
-use menu::{menu, MenuOption};
+use menu::{MenuOption, menu};
 use mipidsi::{
+    Builder,
     interface::SpiInterface,
     models::ST7789,
     options::{ColorInversion, Orientation, Rotation},
-    Builder,
 };
 use neopixel::neopixel;
 use panic_probe as _;
 
 use rp2040_hal::{
-    self as hal,
+    self as hal, I2C, Spi,
     fugit::RateExtU32,
     gpio::{FunctionSpi, Pins},
     pio::PIOExt,
-    Spi, I2C,
 };
 
 use hal::{
-    clocks::{init_clocks_and_plls, Clock},
+    clocks::{Clock, init_clocks_and_plls},
     entry, pac,
     sio::Sio,
     usb::UsbBus,
@@ -52,7 +51,7 @@ use ws2812_pio::Ws2812;
 // the linker will place this boot block at the start of our program image. we
 // need this to help the rom bootloader get our code up and running.
 // TODO: create a BSP for gopherbadge
-#[link_section = ".boot2"]
+#[unsafe(link_section = ".boot2")]
 #[used]
 pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_GENERIC_03H;
 
@@ -189,8 +188,8 @@ fn main() -> ! {
     let mut b_btn_pin = pins.gpio11.into_pull_down_input();
     let mut down_btn_pin = pins.gpio23.into_pull_down_input();
     let mut up_btn_pin = pins.gpio24.into_pull_down_input();
-    let mut left_btn_pin = pins.gpio25.into_pull_down_input();
-    let mut right_btn_pin = pins.gpio22.into_pull_down_input();
+    let left_btn_pin = pins.gpio25.into_pull_down_input();
+    let right_btn_pin = pins.gpio22.into_pull_down_input();
 
     splash_screen(
         &mut display,
@@ -215,16 +214,7 @@ fn main() -> ! {
                 accel(&mut display, &mut lis3dh, &mut b_btn_pin);
             }
             MenuOption::Neopixel => {
-                neopixel(
-                    &mut display,
-                    &mut delay,
-                    &mut b_btn_pin,
-                    &mut down_btn_pin,
-                    &mut up_btn_pin,
-                    &mut left_btn_pin,
-                    &mut right_btn_pin,
-                    &mut ws,
-                );
+                neopixel(&mut display, &mut delay, &mut b_btn_pin, &mut ws);
             }
             MenuOption::HuntTheGopher => {
                 // hunt_the_gopher(&mut display, &mut delay);
@@ -233,31 +223,5 @@ fn main() -> ! {
                 // gopherbadge_rust(&mut display, &mut delay);
             }
         }
-
-        // rust_logo_position.x -= (accel.x * 10.0) as i32;
-        // rust_logo_position.y -= (accel.y * 10.0) as i32;
-
-        // if r_button_pin.is_low().unwrap() {
-        //     rust_logo_position.x += 1;
-        //     paint = true;
-        // }
-        // if l_button_pin.is_low().unwrap() {
-        //     rust_logo_position.x -= 1;
-        //     paint = true;
-        // }
-        // if u_button_pin.is_low().unwrap() {
-        //     rust_logo_position.y -= 1;
-        //     paint = true;
-        // }
-        // if d_button_pin.is_low().unwrap() {
-        //     rust_logo_position.y += 1;
-        //     paint = true;
-        // }
-
-        // // rust_logo.move_to(&mut display, &mut rust_logo_position, Rgb565::BLACK);
-        // if paint {
-        //     rust_logo.move_to(&mut display, &mut rust_logo_position, Rgb565::BLACK);
-        //     // paint = false;
-        // }
     }
 }

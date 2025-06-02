@@ -8,6 +8,7 @@ use embedded_graphics::{
     Drawable,
 };
 use heapless::String;
+use smart_leds::RGB8;
 
 pub fn log<D, C>(display: &mut D, text: &str, x: i32, y: i32)
 where
@@ -59,4 +60,28 @@ where
         if buttons.3 { 1 } else { 0 }
     );
     log(display, &buf, 10, 10);
+}
+
+pub fn log_color<D, C>(display: &mut D, eye_color: &C, led_color: &RGB8)
+where
+    D: DrawTarget<Color = C>,
+    D::Error: core::fmt::Debug,
+    C: RgbColor + From<Rgb555> + From<Rgb565> + From<Rgb888>,
+{
+    let mut buf: String<32> = String::new();
+    let _ = write!(
+        &mut buf,
+        "eye_color: r:{} g:{} b:{}",
+        eye_color.r(),
+        eye_color.g(),
+        eye_color.b()
+    );
+    log(display, &buf, 10, 10);
+    let mut buf: String<32> = String::new();
+    let _ = write!(
+        &mut buf,
+        "led_color: r:{} g:{} b:{}",
+        led_color.r, led_color.g, led_color.b,
+    );
+    log(display, &buf, 10, 20);
 }
