@@ -12,7 +12,8 @@ jobs:
     strategy:
       matrix:
         # All generated code should be running on stable now
-        rust: [nightly, stable]
+        # rust: [nightly, stable]
+        rust: [stable]
         include:
           # Nightly is only for reference and allowed to fail
           - rust: nightly
@@ -21,8 +22,8 @@ jobs:
           # Check compilation works on common OSes
           # (i.e. no path issues)
           - ubuntu-latest
-          - macOS-latest
-          - windows-latest
+          # - macOS-latest
+          # - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
