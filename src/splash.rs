@@ -16,8 +16,8 @@ use crate::bmp::BmpExt;
 
 pub fn splash_screen<D, C, P>(
     display: &mut D,
-    display_backlight_pin: &mut Pin<P, FunctionSio<SioOutput>, PullDown>,
     delay: &mut Forward<Delay>,
+    display_backlight_pin: &mut Pin<P, FunctionSio<SioOutput>, PullDown>,
     splash_logo: &[u8],
 ) where
     C: RgbColor + WebColors + From<Rgb555> + From<Rgb565> + From<Rgb888>,
@@ -48,5 +48,6 @@ pub fn splash_screen<D, C, P>(
     .draw(display)
     .unwrap();
 
-    delay.delay_ms(2000);
+    // delay.delay_ms(2000);
+    delay.delay_ms(200);
 }

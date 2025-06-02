@@ -8,14 +8,14 @@ use tinybmp::Bmp;
 
 use crate::{TFT_DISPLAY_HEIGHT, TFT_DISPLAY_WIDTH};
 
-pub struct MovableSpriteBuilder<'a, C> {
+pub struct SpriteBuilder<'a, C> {
     bmp: Bmp<'a, C>,
     pos: Option<Point>,
     transparent_color: Option<C>,
     screen_boundaries: bool,
 }
 
-impl<'a, C> MovableSpriteBuilder<'a, C>
+impl<'a, C> SpriteBuilder<'a, C>
 where
     C: RgbColor + From<Rgb555> + From<Rgb565> + From<Rgb888>,
 {
@@ -28,8 +28,8 @@ where
         }
     }
 
-    pub fn build(self) -> MovableSprite<'a, C> {
-        MovableSprite::new(
+    pub fn build(self) -> Sprite<'a, C> {
+        Sprite::new(
             self.bmp,
             self.pos.unwrap_or(Point::new(0, 0)),
             self.screen_boundaries,
@@ -54,7 +54,7 @@ where
     }
 }
 
-pub struct MovableSprite<'a, C> {
+pub struct Sprite<'a, C> {
     bmp: Bmp<'a, C>,
     pos: Point,
     size: Size,
@@ -62,7 +62,7 @@ pub struct MovableSprite<'a, C> {
     transparent_color: Option<C>,
 }
 
-impl<'a, C> MovableSprite<'a, C>
+impl<'a, C> Sprite<'a, C>
 where
     C: RgbColor + From<Rgb555> + From<Rgb565> + From<Rgb888>,
 {

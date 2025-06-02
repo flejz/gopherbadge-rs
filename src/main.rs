@@ -6,15 +6,12 @@ mod bmp;
 mod dpad;
 mod log;
 mod menu;
-mod movable_sprite;
+mod neopixel;
 mod splash;
-// mod draw;
-// mod sample;
+mod sprite;
 
 use accel::accel;
-use defmt::*;
 use defmt_rtt as _;
-use dpad::dpad;
 use embedded_hal_bus::spi::{ExclusiveDevice, NoDelay};
 use embedded_hal_compat::ForwardCompat;
 use lis3dh::{DataRate, Lis3dh, Range, SlaveAddr};
@@ -25,12 +22,14 @@ use mipidsi::{
     options::{ColorInversion, Orientation, Rotation},
     Builder,
 };
+use neopixel::neopixel;
 use panic_probe as _;
 
 use rp2040_hal::{
     self as hal,
     fugit::RateExtU32,
     gpio::{FunctionSpi, Pins},
+    pio::PIOExt,
     Spi, I2C,
 };
 
@@ -48,6 +47,7 @@ use usb_device::{
     device::{StringDescriptors, UsbDeviceBuilder, UsbVidPid},
 };
 use usbd_serial::{SerialPort, USB_CLASS_CDC};
+use ws2812_pio::Ws2812;
 
 // the linker will place this boot block at the start of our program image. we
 // need this to help the rom bootloader get our code up and running.
@@ -66,7 +66,6 @@ pub static RUST_CRAB: &[u8] = include_bytes!("./assets/crab.bmp");
 
 #[entry]
 fn main() -> ! {
-    info!("Program start");
     let mut pac = pac::Peripherals::take().unwrap();
     let core = pac::CorePeripherals::take().unwrap();
     let mut watchdog = Watchdog::new(pac.WATCHDOG);
@@ -94,7 +93,9 @@ fn main() -> ! {
     let delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
     let mut delay = delay.forward();
 
-    // usb
+    let timer = hal::Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
+
+    // -- usb serial
     let usb_bus = UsbBus::new(
         pac.USBCTRL_REGS,
         pac.USBCTRL_DPRAM,
@@ -115,7 +116,7 @@ fn main() -> ! {
         .device_class(USB_CLASS_CDC) // from: https://www.usb.org/defined-class-codes
         .build();
 
-    // I2C - accelerometer
+    // -- i2c - accelerometer
     let sda = pins.gpio0.reconfigure();
     let scl = pins.gpio1.reconfigure();
 
@@ -128,13 +129,13 @@ fn main() -> ! {
         clocks.system_clock.freq(),
     );
 
-    // Create sensor driver
+    // sensor driver
     let mut lis3dh = Lis3dh::new_i2c(i2c, SlaveAddr::Default).unwrap();
     lis3dh.set_range(Range::G2).unwrap();
     lis3dh.set_datarate(DataRate::Hz_100).unwrap();
 
-    // SPI - display initialization
-    // spi & control pins
+    // -- spi - display
+    // control pins
     let sck = pins.gpio18.into_function::<FunctionSpi>();
     let mosi = pins.gpio19.into_function::<FunctionSpi>();
     let dc = pins.gpio20.into_push_pull_output();
@@ -164,23 +165,26 @@ fn main() -> ! {
         .init(&mut delay)
         .unwrap();
 
-    // state machine
-    // let mut state_machine = StateMachine::new(
-    //     pins.gpio10.into_pull_down_input(),
-    //     pins.gpio11.into_pull_down_input(),
-    //     pins.gpio24.into_pull_down_input(),
-    //     pins.gpio23.into_pull_down_input(),
-    //     pins.gpio25.into_pull_down_input(),
-    //     pins.gpio22.into_pull_down_input(),
-    //     pins.gpio12.into_push_pull_output(),
-    //     pins.gpio2.into_push_pull_output(),
-    // );
+    // neopixel led
+    let neopixel_pin = pins.gpio15.into_function();
+    let (mut pio, sm0, _, _, _) = pac.PIO0.split(&mut pac.RESETS);
+
+    let mut ws = Ws2812::new(
+        neopixel_pin,
+        &mut pio,
+        sm0,
+        clocks.peripheral_clock.freq(),
+        timer.count_down(),
+    );
+
+    // -- io pins
+    // display backlight
+    let display_backlight_pin = &mut pins.gpio12.into_push_pull_output();
 
     // led
+    let _backside_led_pin = pins.gpio2.into_push_pull_output();
 
-    // let _backside_led_pin = pins.gpio2.into_push_pull_output();
-
-    // let mut paint = true;
+    // buttons
     let mut a_btn_pin = pins.gpio10.into_pull_down_input();
     let mut b_btn_pin = pins.gpio11.into_pull_down_input();
     let mut down_btn_pin = pins.gpio23.into_pull_down_input();
@@ -188,46 +192,38 @@ fn main() -> ! {
     let mut left_btn_pin = pins.gpio25.into_pull_down_input();
     let mut right_btn_pin = pins.gpio22.into_pull_down_input();
 
-    // draw
-    // let mut rust_logo_position = Point::new(100, 100);
-    // let rust_logo: Bmp<Rgb565> = Bmp::from_slice(RUST_PRIDE).unwrap();
-    // let mut rust_logo = MovableSpriteBuilder::builder(rust_logo)
-    //     .with_position(rust_logo_position)
-    //     .with_screen_boundaries()
-    //     .build();
-
-    // rust_logo.draw(&mut display);
-
     splash_screen(
         &mut display,
-        &mut pins.gpio12.into_push_pull_output(),
         &mut delay,
+        display_backlight_pin,
         GOPHER_PANIC,
     );
 
     loop {
         match menu(
             &mut display,
+            &mut delay,
             &mut a_btn_pin,
             &mut down_btn_pin,
             &mut up_btn_pin,
-            &mut delay,
         ) {
             MenuOption::Badge => {
                 // badge(&mut display, &mut delay);
             }
-            MenuOption::Accelerometer => {
+            MenuOption::AccelerometerDPad => {
                 // let accel_f32x3 = lis3dh.accel_norm().unwrap();
                 accel(&mut display, &mut lis3dh, &mut b_btn_pin);
             }
-            MenuOption::DPad => {
-                dpad(
+            MenuOption::Neopixel => {
+                neopixel(
                     &mut display,
+                    &mut delay,
                     &mut b_btn_pin,
                     &mut down_btn_pin,
                     &mut up_btn_pin,
                     &mut left_btn_pin,
                     &mut right_btn_pin,
+                    &mut ws,
                 );
             }
             MenuOption::HuntTheGopher => {

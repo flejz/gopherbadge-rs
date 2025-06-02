@@ -24,9 +24,11 @@ mipidsi = "0.9.0"
 panic-probe = { version = "1", features = ["print-defmt"] }
 rp2040-boot2 = "0.3"
 rp2040-hal = { version = "0.11.0", features = ["rt", "critical-section-impl"] }
+smart-leds = "0.4.0"
 tinybmp = "0.6.0"
 usb-device = "0.3"
 usbd-serial = "0.2.2"
+ws2812-pio = "0.9.0"
 
 # cargo build/run
 [profile.dev]

@@ -5,12 +5,10 @@ use embedded_graphics::{
 };
 use embedded_hal::digital::InputPin;
 use lis3dh::{Lis3dh, Lis3dhCore};
-use rp2040_hal::gpio::{
-        bank0::Gpio11, FunctionSio, Pin, PullDown, SioInput,
-    };
+use rp2040_hal::gpio::{bank0::Gpio11, FunctionSio, Pin, PullDown, SioInput};
 use tinybmp::Bmp;
 
-use crate::{bmp::BmpExt, log::log_accel, movable_sprite::MovableSpriteBuilder, RUST_PRIDE};
+use crate::{bmp::BmpExt, log::log_accel, sprite::SpriteBuilder, RUST_PRIDE};
 
 pub fn accel<D, C, L>(
     display: &mut D,
@@ -28,7 +26,7 @@ pub fn accel<D, C, L>(
 
     let rust_logo: Bmp<C> = Bmp::from_slice(RUST_PRIDE).unwrap();
     let mut rust_logo_position = rust_logo.screen_center();
-    let mut rust_logo = MovableSpriteBuilder::builder(rust_logo)
+    let mut rust_logo = SpriteBuilder::builder(rust_logo)
         .with_position(rust_logo_position)
         .with_screen_boundaries()
         .build();
