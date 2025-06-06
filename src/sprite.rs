@@ -9,7 +9,7 @@ use tinybmp::Bmp;
 use crate::{TFT_DISPLAY_HEIGHT, TFT_DISPLAY_WIDTH, image_rotate::ImageRotate};
 
 pub struct SpriteBuilder<'a, C> {
-    bmp: Bmp<'a, C>,
+    bmp: &'a Bmp<'a, C>,
     pos: Option<Point>,
     transparent_color: Option<C>,
     screen_boundaries: bool,
@@ -19,7 +19,7 @@ impl<'a, C> SpriteBuilder<'a, C>
 where
     C: RgbColor + From<Rgb555> + From<Rgb565> + From<Rgb888>,
 {
-    pub fn builder(bmp: Bmp<'a, C>) -> Self {
+    pub fn builder(bmp: &'a Bmp<'a, C>) -> Self {
         Self {
             bmp,
             pos: None,
@@ -55,11 +55,13 @@ where
 }
 
 pub struct Sprite<'a, C> {
-    bmp: Bmp<'a, C>,
-    pub pos: Point,
+    bmp: &'a Bmp<'a, C>,
+    pos: Point,
     size: Size,
     screen_boundaries: bool,
     transparent_color: Option<C>,
+    _static_image: Image<'a, Bmp<'a, C>>,
+    rotated_image: ImageRotate<'a, C>,
 }
 
 impl<'a, C> Sprite<'a, C>
@@ -67,7 +69,7 @@ where
     C: RgbColor + From<Rgb555> + From<Rgb565> + From<Rgb888>,
 {
     pub fn new(
-        bmp: Bmp<'a, C>,
+        bmp: &'a Bmp<'a, C>,
         pos: Point,
         screen_boundaries: bool,
         transparent_color: Option<C>,
@@ -79,18 +81,33 @@ where
             size,
             screen_boundaries,
             transparent_color,
+            _static_image: Image::<'a, Bmp<'a, C>>::new(bmp, pos),
+            rotated_image: ImageRotate::<'a, C>::new(bmp, pos, 0.0),
         }
     }
 
-    pub fn draw<D>(&self, display: &mut D, angle: f32)
+    pub fn _pos(&'a self) -> &'a Point {
+        &self.pos
+    }
+
+    pub fn size(&'a self) -> &'a Size {
+        &self.size
+    }
+
+    pub fn center(&self) -> Point {
+        self.pos + Size::new(self.size.width / 2, self.size.height / 2)
+    }
+
+    pub fn draw<D>(&mut self, display: &mut D, angle: f32)
     where
         D: DrawTarget<Color = C>,
         D::Error: core::fmt::Debug,
     {
         if angle == 0.0 {
-            Image::new(&self.bmp, self.pos).draw(display)
+            // self.static_image.translate_mut(self.pos).draw(display)
+            Image::new(self.bmp, self.pos).draw(display)
         } else {
-            ImageRotate::new(&self.bmp, self.pos, angle).draw(display)
+            self.rotated_image.update(angle, self.pos).draw(display)
         }
         .unwrap();
     }
@@ -174,8 +191,7 @@ where
                 .clamp(0, TFT_DISPLAY_HEIGHT as i32 - self.size.height as i32);
         }
 
-        let old_pos = self.pos;
-        self.clear_diff(display, old_pos, new_pos, bg);
+        self.clear_diff(display, self.pos, new_pos, bg);
         self.pos = *new_pos;
         if self.transparent_color.is_none() {
             self.draw(display, angle);

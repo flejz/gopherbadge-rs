@@ -64,6 +64,8 @@ pub const TFT_DISPLAY_HEIGHT: u16 = 240;
 pub const TFT_DISPLAY_WIDTH: u16 = 320;
 
 pub static GOPHER_PANIC: &[u8] = include_bytes!("./assets/gopher-panic.bmp");
+pub static GOPHER_HEAD: &[u8] = include_bytes!("./assets/gopher-head.bmp");
+pub static GOPHER_DEAD: &[u8] = include_bytes!("./assets/gopher-dead.bmp");
 pub static GOPHERBADGE_RS: &[u8] = include_bytes!("./assets/gopherbadge-rs.bmp");
 pub static RUST_PRIDE: &[u8] = include_bytes!("./assets/rust-pride.bmp");
 pub static RUST_CRAB: &[u8] = include_bytes!("./assets/crab.bmp");
@@ -203,8 +205,6 @@ fn main() -> ! {
         GOPHER_PANIC,
     );
 
-    gopher_hunt(&mut display, &mut lis3dh, &mut b_btn_pin);
-
     loop {
         match menu(
             &mut display,
@@ -233,7 +233,13 @@ fn main() -> ! {
                 neopixel(&mut display, &mut delay, &mut b_btn_pin, &mut ws);
             }
             MenuOption::HuntTheGopher => {
-                // hunt_the_gopher(&mut display, &mut delay);
+                gopher_hunt(
+                    &mut display,
+                    &mut delay,
+                    &mut lis3dh,
+                    &mut a_btn_pin,
+                    &mut b_btn_pin,
+                );
             }
             MenuOption::GopherbadgeRust => {
                 gopherbadge_rs(&mut display, &mut delay, &mut b_btn_pin);

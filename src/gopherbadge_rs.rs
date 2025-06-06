@@ -19,10 +19,10 @@ pub fn gopherbadge_rs<D, C>(
     D: DrawTarget<Color = C>,
     D::Error: core::fmt::Debug,
 {
-    SpriteBuilder::builder(Bmp::from_slice(GOPHERBADGE_RS).unwrap())
+    SpriteBuilder::builder(&Bmp::from_slice(GOPHERBADGE_RS).unwrap())
         .with_position(Point::new(0, 0))
         .build()
-        .draw(display, 180.0);
+        .draw(display, 0.0);
 
     loop {
         if b_btn_pin.is_low().unwrap() {

@@ -125,7 +125,7 @@ where
     let mut rust_logo_position = rust_logo_bmp.screen_bottom_right();
     rust_logo_position.x -= 10;
     rust_logo_position.y -= 10;
-    SpriteBuilder::<C>::builder(rust_logo_bmp)
+    SpriteBuilder::<C>::builder(&rust_logo_bmp)
         .with_position(rust_logo_position)
         .with_transparency(C::BLACK)
         .build()

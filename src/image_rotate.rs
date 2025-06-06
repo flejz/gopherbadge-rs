@@ -23,6 +23,16 @@ where
             angle_deg,
         }
     }
+
+    pub fn update(&mut self, angle_deg: f32, pos: Point) -> &mut Self {
+        self.angle_deg = angle_deg;
+        self.pos = pos;
+        self
+    }
+
+    // pub fn set_pos(&mut self, pos: Point) -> &mut Self {
+    //     self
+    // }
 }
 
 impl<'a, C> Drawable for ImageRotate<'a, C>

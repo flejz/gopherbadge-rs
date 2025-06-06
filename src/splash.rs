@@ -48,6 +48,5 @@ pub fn splash_screen<D, C, P>(
     .draw(display)
     .unwrap();
 
-    // delay.delay_ms(2000);
-    delay.delay_ms(200);
+    delay.delay_ms(2000);
 }

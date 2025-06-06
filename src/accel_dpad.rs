@@ -46,13 +46,13 @@ pub fn accel_dpad<D, C, L>(
 
     let rust_logo_bmp: Bmp<C> = Bmp::from_slice(RUST_PRIDE).unwrap();
     let mut rust_logo_position = rust_logo_bmp.screen_center();
-    let mut rust_logo = SpriteBuilder::builder(rust_logo_bmp)
+    let mut rust_logo = SpriteBuilder::builder(&rust_logo_bmp)
         .with_position(rust_logo_position)
         .with_screen_boundaries()
         .build();
 
     let mut draw = true;
-    let mut dpad = false;
+    let mut dpad = true;
 
     loop {
         Text::with_alignment(
@@ -112,14 +112,14 @@ pub fn accel_dpad<D, C, L>(
         if draw {
             rust_logo.move_to(display, &mut rust_logo_position, C::BLACK, 0.0);
             draw = false;
+            delay.delay_ms(1);
         }
 
         if a_btn_pin.is_low().unwrap() {
             dpad = !dpad;
             display.clear(C::BLACK).unwrap();
-            delay.delay_ms(200);
             draw = true;
-            rust_logo_position = rust_logo_bmp.screen_center();
+            delay.delay_ms(200);
         }
 
         if b_btn_pin.is_low().unwrap() {
